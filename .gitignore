@@ -1,0 +1,9 @@
+config.ini
+
+data/
+
+outputs/
+
+cache/
+
+__pycache__/
