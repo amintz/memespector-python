@@ -83,16 +83,26 @@ except Exception:
 
 csvDialect = csv.Sniffer().sniff(inputFile.read(1024))
 csvDialect.escapechar = "\\"
+delimiter = settings['InputConfiguration']['Delimiter'].encode('utf-8').decode('unicode_escape')
+
+print("Delimiter: " + delimiter)
+
+csvDialect.delimiter = delimiter
+
 inputFile.seek(0)
 inputCSV = csv.reader(inputFile, csvDialect)
 inputHeader = next(inputCSV)
 
-
 imagesColumn = settings['InputConfiguration']['ImagesColumn']
-imagesColumnIdx = inputHeader.index(imagesColumn)
+
+if imagesColumn in inputHeader:
+    imagesColumnIdx = inputHeader.index(imagesColumn)
+else:
+    print(inputHeader)
+    sys.exit('\n**ERROR**\nImage column could not be found in input file. Please check the configuration file.\n')
 
 # Workaround for Facebook URLs messing with filename extensions
-if "created_time_unix" in inputHeader:
+if ("created_time_unix" in inputHeader) or  ("post_published_unix" in inputHeader):
     isFacebook = True
 else:
     isFacebook = False
@@ -234,28 +244,28 @@ for i in range(procLimit):
         if 'fullMatchingImages' in responseData['responses'][0]['webDetection']:
             gv_web_full_matching_images = []
             for url in responseData['responses'][0]['webDetection']['fullMatchingImages']:
-                gv_web_full_matching_images.append(url['url'])
+                gv_web_full_matching_images.append(url['url'].replace(",", "%2C"))
             gv_web_full_matching_images = ",".join(gv_web_full_matching_images)
         else:
             gv_web_full_matching_images = "NONE"
         if 'pagesWithMatchingImages' in responseData['responses'][0]['webDetection']:
             gv_web_pages_with_matching_images = []
             for url in responseData['responses'][0]['webDetection']['pagesWithMatchingImages']:
-                gv_web_pages_with_matching_images.append(url['url'])
+                gv_web_pages_with_matching_images.append(url['url'].replace(",", "%2C"))
             gv_web_pages_with_matching_images = ",".join(gv_web_pages_with_matching_images)
         else:
             gv_web_pages_with_matching_images = "NONE"
         if 'partialMatchingImages' in responseData['responses'][0]['webDetection']:
             gv_web_partial_matching_images = []
             for url in responseData['responses'][0]['webDetection']['partialMatchingImages']:
-                gv_web_partial_matching_images.append(url['url'])
+                gv_web_partial_matching_images.append(url['url'].replace(",", "%2C"))
             gv_web_partial_matching_images = ",".join(gv_web_partial_matching_images)
         else:
             gv_web_partial_matching_images = "NONE"
         if 'visuallySimilarImages' in responseData['responses'][0]['webDetection']:
             gv_web_visually_similar_images = []
             for url in responseData['responses'][0]['webDetection']['visuallySimilarImages']:
-                gv_web_visually_similar_images.append(url['url'])
+                gv_web_visually_similar_images.append(url['url'].replace(",", "%2C"))
             gv_web_visually_similar_images = ",".join(gv_web_visually_similar_images)
         else:
             gv_web_visually_similar_images = "NONE"
