@@ -196,8 +196,12 @@ for i in range(procLimit):
         if imagesRemote and forceBase64 and saveImageCopy:
             # If images are remote but are to be processed through local base64 coding and copies have been made, use copies for network traffic efficiency.
             responseData = gapi.processImage(copyFilePath, remote=False)
+            if not responseData:
+                continue
         else:
             responseData = gapi.processImage(imagePath)
+            if not responseData:
+                continue
         with open(responseFile, 'w') as outFile:
             json.dump(responseData, outFile, indent=4, sort_keys=True)
         copyfile(responseFile, responseFileCp)

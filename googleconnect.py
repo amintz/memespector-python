@@ -57,7 +57,7 @@ def processImage(path, remote=imagesRemote):
             try:
                 image = open(path,"rb")
             except Exception:
-                sys.exit('\n**ERROR**\nCould not open local image. Check if file exists and configuration file.\n')
+                sys.exit('\n\t**ERROR**\n\tCould not open local image. Check if file exists and configuration file.\n')
             base64Data = base64.b64encode(image.read())
             print("done.")
         else:
@@ -66,7 +66,10 @@ def processImage(path, remote=imagesRemote):
             try:
                 image = requests.get(path,allow_redirects=True)
             except Exception:
-                sys.exit('\n**ERROR**\nCould not retrieve remote image. Check data, internet connection, configuration.\n')
+                sys.exit('\n\t**ERROR**\n\tCould not retrieve remote image. Check data, internet connection, configuration.\n')
+            if image.text == "":
+                print('\n\t **ALERT** Could not retrieve remote image. Skipping to next.\n')
+                return False
             base64Data = base64.b64encode(image.content)
             print("done.")
         print("\tPreparing request...", end="")
@@ -78,7 +81,7 @@ def processImage(path, remote=imagesRemote):
                     "content": "''' + base64Data.decode("utf-8") + '''"
                 },
                 "features":[
-                    ''' + str(jsonRequestFeatures()) + '''
+                    ''' + jsonRequestFeatures() + '''
                 ]
                 }
             ]
