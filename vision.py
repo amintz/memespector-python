@@ -1,13 +1,23 @@
-import configparser, requests, csv, json, os, sys, itertools, hashlib, re
+import configparser, requests, csv, json, os, sys, itertools, hashlib, re, platform
 import functions as f
 import googleconnect as gapi
 from shutil import copyfile
 
 sys.tracebacklimit = 0
 
+if platform.system() == 'Windows':
+    iswindows = True
+    slash = '\\'
+else:
+    iswindows = False
+    slash = '/'
+
 settings = configparser.ConfigParser()
 settings._interpolation = configparser.ExtendedInterpolation()
-settings.read('config.ini')
+try:
+    settings.read('config.ini')
+except Exception:
+    sys.exit('\n**ERROR**\nCould not open configuration file. It should be in the same folder as the script and named \'config.ini\'\n')
 
 print("\n-------------------------\nMemespector Python script\n-------------------------")
 
@@ -15,12 +25,14 @@ print("\n-------------------------\nMemespector Python script\n-----------------
 # Create folders
 #-------------------------------------------
 
+projectname     = settings['Project']['ProjectName']
+
 dir_path        = os.path.dirname(os.path.realpath(__file__))
-dataFolder      = dir_path + '/' + settings['Folders']['DataFolder']
-cacheFolder     = dir_path + '/' + settings['Folders']['CacheFolder']
-outputsFolder   = dir_path + '/' + settings['Folders']['OutputsFolder']
-imageCpFolder   = dir_path + '/' + settings['Folders']['ImageCopyFolder']
-cacheCopyFolder = dir_path + '/' + settings['Folders']['CacheCopyFolder']
+dataFolder      = dir_path + slash + settings['Folders']['DataFolder'] + slash
+cacheFolder     = dir_path + slash + settings['Folders']['CacheFolder'] + slash
+outputsFolder   = dir_path + slash + settings['Folders']['OutputsFolder'] + slash + projectname + slash
+imageCpFolder   = outputsFolder + settings['Folders']['ImageCopyFolder'] + slash
+cacheCopyFolder = outputsFolder + settings['Folders']['CacheCopyFolder'] + slash
 
 if not os.path.exists(cacheFolder):
     os.makedirs(cacheFolder)
@@ -28,7 +40,7 @@ if not os.path.exists(cacheFolder):
 if os.path.exists(outputsFolder):
     answer = input("\nATTENTION: Project folder already exists. There is risk of overwriting files. Continue? Y or N > ")
     if answer.lower() == 'n':
-        sys.exit()
+        sys.exit('Rename project in config file.')
 else:
     os.makedirs(outputsFolder)
 
@@ -77,7 +89,7 @@ inputFileName = settings['InputConfiguration']['InputFile']
 inputFilePath = dataFolder + inputFileName
 
 try:
-    inputFile = open(inputFilePath)
+    inputFile = open(inputFilePath, encoding='utf8')
 except Exception:
     sys.exit('\n**ERROR**\nInput file could not be opened. Please check the configuration file.\n')
 
@@ -129,7 +141,7 @@ outputFileName = "processed_" + inputFileName
 outputFilePath = outputsFolder + outputFileName
 
 try:
-    outputFile = open(outputFilePath, 'w', newline='')
+    outputFile = open(outputFilePath, 'w', newline='', encoding='utf8')
 except Exception:
     sys.exit('\n**ERROR**\nOutput file could not be created. Please check the configuration file.\n')
 
@@ -178,6 +190,7 @@ for i in range(procLimit):
         copyFilePath = imageCpFolder + copyFilename
         if not os.path.isfile(copyFilePath):
             print("\tCopying image...", end="")
+            sys.stdout.flush()
             try:
                 image = requests.get(imagePath, allow_redirects=True)
             except Exception:
@@ -202,14 +215,14 @@ for i in range(procLimit):
             responseData = gapi.processImage(imagePath)
             if not responseData:
                 continue
-        with open(responseFile, 'w') as outFile:
+        with open(responseFile, 'w', encoding='utf8') as outFile:
             json.dump(responseData, outFile, indent=4, sort_keys=True)
         copyfile(responseFile, responseFileCp)
 
     else:
         print("\t*ATTENTION* Using cached content (remove all files in the cache folder if you see this message and the tool is not working yet)")
         copyfile(responseFile, responseFileCp)
-        responseData = json.load(open(responseFile))
+        responseData = json.load(open(responseFile, encoding='utf8'))
 
     # Parse API response
 
