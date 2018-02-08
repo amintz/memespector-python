@@ -3,22 +3,33 @@ import functions as f
 
 settings = configparser.ConfigParser()
 settings._interpolation = configparser.ExtendedInterpolation()
-settings.read('config.ini')
 
-imagesRemote = f.yn(settings['SourceImagesLocation']['ImagesRemote'])
-forceBase64 = f.yn(settings['SourceImagesLocation']['ForceBase64'])
+try:
+    settings.read('config.ini')
+except Exception:
+    sys.exit('\n**ERROR**\nCould not open configuration file. It should be in the same folder as the script and named \'config.ini\'\n')
 
-modules = {
-    'LABEL_DETECTION'         : f.yn(settings['ApiRequestFeatures']['Label']),
-    'SAFE_SEARCH_DETECTION'   : f.yn(settings['ApiRequestFeatures']['SafeSearch']),
-    'TEXT_DETECTION'          : f.yn(settings['ApiRequestFeatures']['Text']),
-    'WEB_DETECTION'           : f.yn(settings['ApiRequestFeatures']['Web']),
-    'FACE_DETECTION'          : f.yn(settings['ApiRequestFeatures']['Face'])
-}
+try:
+    imagesRemote = f.yn(settings['SourceImagesLocation']['ImagesRemote'])
+    forceBase64 = f.yn(settings['SourceImagesLocation']['ForceBase64'])
+    modules = {
+        'LABEL_DETECTION'         : f.yn(settings['ApiRequestFeatures']['Label']),
+        'SAFE_SEARCH_DETECTION'   : f.yn(settings['ApiRequestFeatures']['SafeSearch']),
+        'TEXT_DETECTION'          : f.yn(settings['ApiRequestFeatures']['Text']),
+        'WEB_DETECTION'           : f.yn(settings['ApiRequestFeatures']['Web']),
+        'FACE_DETECTION'          : f.yn(settings['ApiRequestFeatures']['Face'])
+    }
+    maxResults = settings['ApiRequestFeatures']['MaxResults']
+    apiKey = settings['ApiRequestFeatures']['ApiKey']
+except Exception:
+    sys.exit("\n**ERROR**\nCould not parse at least one of the settings from the config file. Please verify its contents it carefully.")
 
-maxResults = settings['ApiRequestFeatures']['MaxResults']
+if maxResults == "0":
+    setMax = False
+else:
+    setMax = True
 
-apiKey = settings['ApiRequestFeatures']['ApiKey']
+
 
 
 def printModuleConfiguration():
@@ -37,10 +48,15 @@ def jsonRequestFeatures() :
     features = []
     for key in modules:
         if modules[key]:
-            features.append('''{
-                            "type":"''' + key + '''",
-                            "maxResults":''' + maxResults + '''
-                         }''')
+            if setMax:
+                features.append('''{
+                                "type":"''' + key + '''",
+                                "maxResults":''' + maxResults + '''
+                             }''')
+            else:
+                features.append('''{
+                                "type":"''' + key + '''"
+                             }''')
         else:
             continue
     jsonRequestFeatures = ",\n\t\t\t".join(features)

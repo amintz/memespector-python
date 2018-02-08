@@ -14,6 +14,7 @@ else:
 
 settings = configparser.ConfigParser()
 settings._interpolation = configparser.ExtendedInterpolation()
+
 try:
     settings.read('config.ini')
 except Exception:
@@ -22,17 +23,45 @@ except Exception:
 print("\n-------------------------\nMemespector Python script\n-------------------------")
 
 # ------------------------------------------
-# Create folders
+# Read the config file
 #-------------------------------------------
 
-projectname     = settings['Project']['ProjectName']
+try:
+    projectname     = settings['Project']['ProjectName']
 
-dir_path        = os.path.dirname(os.path.realpath(__file__))
-dataFolder      = dir_path + slash + settings['Folders']['DataFolder'] + slash
-cacheFolder     = dir_path + slash + settings['Folders']['CacheFolder'] + slash
-outputsFolder   = dir_path + slash + settings['Folders']['OutputsFolder'] + slash + projectname + slash
-imageCpFolder   = outputsFolder + settings['Folders']['ImageCopyFolder'] + slash
-cacheCopyFolder = outputsFolder + settings['Folders']['CacheCopyFolder'] + slash
+    dir_path        = os.path.dirname(os.path.realpath(__file__))
+    dataFolder      = dir_path + slash + settings['Folders']['DataFolder'] + slash
+    cacheFolder     = dir_path + slash + settings['Folders']['CacheFolder'] + slash
+    outputsFolder   = dir_path + slash + settings['Folders']['OutputsFolder'] + slash + projectname + slash
+    imageCpFolder   = outputsFolder + settings['Folders']['ImageCopyFolder'] + slash
+    cacheCopyFolder = outputsFolder + settings['Folders']['CacheCopyFolder'] + slash
+
+    makeNetwork = f.yn(settings['OutputConfiguration']['MakeNetwork'])
+    includeLink = f.yn(settings['OutputConfiguration']['IncludeLink'])
+    linkColumn = settings['OutputConfiguration']['InputFileLinkColumn']
+
+    imagesRemote = f.yn(settings['SourceImagesLocation']['ImagesRemote'])
+    absolutePath = f.yn(settings['SourceImagesLocation']['AbsolutePath'])
+    forceBase64 = f.yn(settings['SourceImagesLocation']['ForceBase64'])
+    saveImageCopy = f.yn(settings['SourceImagesLocation']['SaveImageCopy'])
+    inputImageFolder = settings['SourceImagesLocation']['InputImageFolder']
+
+    labelThreshold = float(settings['OutputConfiguration']['LabelScoreFilter'])
+    includeScore = f.yn(settings['OutputConfiguration']['IncludeScoreInSpreadsheet'])
+
+    inputFileName = settings['InputConfiguration']['InputFile']
+    inputFilePath = dataFolder + inputFileName
+    delimiter = settings['InputConfiguration']['Delimiter'].encode('utf-8').decode('unicode_escape')
+
+    imagesColumn = settings['InputConfiguration']['ImagesColumn']
+
+    procLimit = int(settings['InputConfiguration']['Limit'])
+except Exception:
+    sys.exit("\n**ERROR**\nCould not parse at least one of the settings from the config file. Please verify its contents it carefully.")
+
+# ------------------------------------------
+# Create folders
+#-------------------------------------------
 
 if not os.path.exists(cacheFolder):
     os.makedirs(cacheFolder)
@@ -55,16 +84,6 @@ if not os.path.exists(cacheCopyFolder):
 # ------------------------------------------
 
 gapi.printModuleConfiguration()
-
-imagesRemote = f.yn(settings['SourceImagesLocation']['ImagesRemote'])
-absolutePath = f.yn(settings['SourceImagesLocation']['AbsolutePath'])
-forceBase64 = f.yn(settings['SourceImagesLocation']['ForceBase64'])
-saveImageCopy = f.yn(settings['SourceImagesLocation']['SaveImageCopy'])
-inputImageFolder = settings['SourceImagesLocation']['InputImageFolder']
-
-makeNetwork = f.yn(settings['ImageLabelNetworkOutput']['MakeNetwork'])
-includeLink = f.yn(settings['ImageLabelNetworkOutput']['IncludeLink'])
-linkColumn = settings['ImageLabelNetworkOutput']['InputFileLinkColumn']
 
 print("HANDLING OF IMAGE SOURCE\n")
 if imagesRemote:
@@ -89,9 +108,6 @@ print()
 # Get input
 # ------------------------------------------
 
-inputFileName = settings['InputConfiguration']['InputFile']
-inputFilePath = dataFolder + inputFileName
-
 try:
     inputFile = open(inputFilePath, encoding='utf8')
 except Exception:
@@ -99,7 +115,6 @@ except Exception:
 
 csvDialect = csv.Sniffer().sniff(inputFile.read(1024))
 csvDialect.escapechar = "\\"
-delimiter = settings['InputConfiguration']['Delimiter'].encode('utf-8').decode('unicode_escape')
 
 print("Delimiter: " + delimiter)
 
@@ -108,8 +123,6 @@ csvDialect.delimiter = delimiter
 inputFile.seek(0)
 inputCSV = csv.reader(inputFile, csvDialect)
 inputHeader = next(inputCSV)
-
-imagesColumn = settings['InputConfiguration']['ImagesColumn']
 
 if imagesColumn in inputHeader:
     imagesColumnIdx = inputHeader.index(imagesColumn)
@@ -133,7 +146,6 @@ else:
 numImages = sum(1 for row in inputCSV)
 inputFile.seek(0)
 
-procLimit = int(settings['InputConfiguration']['Limit'])
 
 if procLimit > numImages or procLimit == 0:
     procLimit = numImages
@@ -301,6 +313,8 @@ for i in range(procLimit):
     if 'labelAnnotations' in response:
         gv_labels = []
         for label in response['labelAnnotations']:
+            if label['score'] < labelThreshold:
+                continue;
             if not label['mid'] in foundlabels:
                 foundlabels.append(label['mid'])
                 if makeNetwork:
@@ -321,7 +335,10 @@ for i in range(procLimit):
                 edgerow.append(label['mid'])
                 edgerow.append(label['score'])
                 edgesCSV.writerow(edgerow)
-            gv_labels.append(label['description'] + "(" + str(label['score']) + ")")
+            if includeScore:
+                gv_labels.append(label['description'] + "(" + str(label['score']) + ")")
+            else:
+                gv_labels.append(label['description'])
         gv_labels = ",".join(gv_labels)
     else:
         gv_labels = "NONE"
