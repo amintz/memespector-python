@@ -22,7 +22,7 @@ try:
     maxResults = settings['ApiRequestFeatures']['MaxResults']
     apiKey = settings['ApiRequestFeatures']['ApiKey']
 except Exception:
-    sys.exit("\n**ERROR**\nCould not parse at least one of the settings from the config file. Please verify its contents it carefully.")
+    sys.exit("\n**ERROR**\nCould not parse at least one of the settings from the config file. Please verify its contents carefully.")
 
 if maxResults == "0":
     setMax = False

@@ -57,7 +57,7 @@ try:
 
     procLimit = int(settings['InputConfiguration']['Limit'])
 except Exception:
-    sys.exit("\n**ERROR**\nCould not parse at least one of the settings from the config file. Please verify its contents it carefully.")
+    sys.exit("\n**ERROR**\nCould not parse at least one of the settings from the config file. Please verify its contents carefully.")
 
 # ------------------------------------------
 # Create folders
