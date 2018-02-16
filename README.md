@@ -43,6 +43,8 @@ The config file contains several options which are all described in its comments
     1. Module list: set to 'yes' each of the Vision API modules you would like to enable in the requests.
     2. MaxResults: limits the number of results fetched from Vision API for each of the enabled modules. Set to 0 to not set the maximum, to which the Vision API will return the default maximum for each module.
     3. ApiKey: place the API key obtained from Google Cloud here (Installation step 1)
+4. OutputConfiguration
+    1. MakeNetwork: set to 'yes' to generate an image-label network from the annotated dataset.
 
 ## Execution
 Run the script "main.py" in a terminal window. To run in terminal, move to the script's directory and type
