@@ -35,7 +35,7 @@ def main():
 
 
         try:
-            projectFolder     = settings['Project']['YourProjectFolder']
+            projectFolder     = settings['Project']['ProjectFolder']
 
             dir_path        = os.path.dirname(os.path.realpath(__file__))
             dataFolder      = dir_path + slash + settings['Folders']['DataFolder'] + slash
