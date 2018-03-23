@@ -69,10 +69,10 @@ def main():
             imagesRemote = f.yn(settings['SourceImagesLocation']['ImagesRemote'])
             forceBase64 = f.yn(settings['SourceImagesLocation']['ForceBase64'])
 
-            labelDetection = f.yn(settings['ApiRequestFeatures']['Label']),
-            safeSearchDetection = f.yn(settings['ApiRequestFeatures']['SafeSearch']),
-            textDetection = f.yn(settings['ApiRequestFeatures']['Text']),
-            webDetection = f.yn(settings['ApiRequestFeatures']['Web']),
+            labelDetection = f.yn(settings['ApiRequestFeatures']['Label'])
+            safeSearchDetection = f.yn(settings['ApiRequestFeatures']['SafeSearch'])
+            textDetection = f.yn(settings['ApiRequestFeatures']['Text'])
+            webDetection = f.yn(settings['ApiRequestFeatures']['Web'])
             faceDetection = f.yn(settings['ApiRequestFeatures']['Face'])
 
             maxResults = settings['ApiRequestFeatures']['MaxResults']
@@ -295,6 +295,7 @@ def main():
                 copyfile(responseFile, responseFileCp)
 
             else:
+                # If there is a json annotation file save in cache, use that instead of processing the image again.
                 print("\t*ATTENTION* Using cached content (remove all files in the cache folder if you see this message and the tool is not working yet)")
                 copyfile(responseFile, responseFileCp)
                 responseData = json.load(open(responseFile, encoding='utf8'))
