@@ -1,4 +1,4 @@
-import configparser, requests, csv, json, os, sys, itertools, hashlib, re, platform, traceback
+import configparser, requests, csv, json, os, sys, itertools, hashlib, re, platform, traceback, datetime
 from shutil import copyfile
 import networkx as nx
 import functions as f
@@ -18,7 +18,8 @@ def main():
         else:
             iswindows = False
             slash = '/'
-
+        curDateTime = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M")
+        print(curDateTime)
         # ------------------------------------------
         # Read the config file
         #-------------------------------------------
@@ -28,7 +29,8 @@ def main():
 
         try:
             settings.read('config.ini')
-        except Exception:
+        except Exception as exc:
+            print(exc)
             sys.exit('\n**ERROR**\nCould not open configuration file. It should be in the same folder as the script and named \'config.ini\'\n')
 
         print("\n-------------------------\nMemespector Python script\n-------------------------")
@@ -36,6 +38,7 @@ def main():
 
         try:
             projectFolder     = settings['Project']['ProjectFolder']
+            timeseries        = f.yn(settings['Project']['TimeSeries'])
 
             dir_path        = os.path.dirname(os.path.realpath(__file__))
             dataFolder      = dir_path + slash + settings['Folders']['DataFolder'] + slash
@@ -47,6 +50,7 @@ def main():
             makeNetwork = f.yn(settings['OutputConfiguration']['MakeNetwork'])
 
             imagesRemote = f.yn(settings['SourceImagesLocation']['ImagesRemote'])
+            filenameId = f.yn(settings['SourceImagesLocation']['UseFilenameAsId'])
             absolutePath = f.yn(settings['SourceImagesLocation']['AbsolutePath'])
             forceBase64 = f.yn(settings['SourceImagesLocation']['ForceBase64'])
             saveImageCopy = f.yn(settings['SourceImagesLocation']['SaveImageCopy'])
@@ -75,6 +79,11 @@ def main():
             webDetection = f.yn(settings['ApiRequestFeatures']['Web'])
             faceDetection = f.yn(settings['ApiRequestFeatures']['Face'])
 
+            if not (labelDetection or safeSearchDetection or textDetection or webDetection or faceDetection):
+                downloadMode = True
+            else:
+                downloadMode = False
+
             maxResults = settings['ApiRequestFeatures']['MaxResults']
             apiKey = settings['ApiRequestFeatures']['ApiKey']
 
@@ -94,13 +103,14 @@ def main():
             os.makedirs(cacheFolder)
 
         if os.path.exists(outputsFolder):
-            answer = input("\nATTENTION: Project folder already exists. There is risk of overwriting files. Continue? Y or N > ")
-            if answer.lower() == 'n':
-                sys.exit('Rename project in config file.')
-            elif answer.lower() == 'y':
-                print('Continuing overwriting existing files.')
-            else:
-                sys.exit('Answer not understood. Exiting.')
+            if not timeseries:
+                answer = input("\nATTENTION: Project folder already exists. There is risk of overwriting files. Continue? Y or N > ")
+                if answer.lower() == 'n':
+                    sys.exit('Rename project in config file.')
+                elif answer.lower() == 'y':
+                    print('Continuing overwriting existing files.')
+                else:
+                    sys.exit('Answer not understood. Exiting.')
         else:
             os.makedirs(outputsFolder)
 
@@ -194,8 +204,10 @@ def main():
         # ------------------------------------------
         # Create output files
         # ------------------------------------------
-
-        outputFileName = "annotated_" + inputFileName
+        if(timeseries):
+            outputFileName = "annotated_" + inputFileName.split(".")[0] + "_" + curDateTime + "." + inputFileName.split(".")[1]
+        else:
+            outputFileName = "annotated_" + inputFileName
         outputFilePath = outputsFolder + outputFileName
 
         try:
@@ -206,13 +218,16 @@ def main():
         outputCSV = csv.writer(outputFile, csvDialect)
 
         # Add columns to input file
-        outputHeader = inputHeader + ['original_filename', 'image_id', 'file_ext', 'copy_filename', 'gv_ss_adult','gv_ss_spoof','gv_ss_medical','gv_ss_violence','gv_labels', 'gv_text', 'gv_text_lang', 'gv_web_entities', 'gv_web_full_matching_images', 'gv_web_partial_matching_images', 'gv_web_pages_with_matching_images', 'gv_web_visually_similar_images', 'gv_num_faces', 'gv_face_joy', 'gv_face_sorrow', 'gv_face_anger', 'gv_face_surprise']
+        outputHeader = inputHeader + ['original_filename', 'image_id', 'file_ext', 'copy_filename', 'gv_ss_adult','gv_ss_spoof','gv_ss_medical','gv_ss_violence','gv_labels', 'gv_text', 'gv_text_lang', 'gv_web_entities', 'gv_web_full_matching_images', 'gv_web_partial_matching_images', 'gv_web_pages_with_full_matching_images', 'gv_web_pages_with_partial_matching_images', 'gv_web_visually_similar_images', 'gv_num_faces', 'gv_face_joy', 'gv_face_sorrow', 'gv_face_anger', 'gv_face_surprise']
 
         outputCSV.writerow(outputHeader)
 
         if makeNetwork:
             graph = nx.Graph()
-            graphfilename = "img-label-net_" + inputFileName.split(".")[0] + ".gexf"
+            if timeseries:
+                graphfilename = "img-label-net_" + inputFileName.split(".")[0] + "_" + curDateTime + ".gexf"
+            else:
+                graphfilename = "img-label-net_" + inputFileName.split(".")[0] + ".gexf"                
             graphfilepath = outputsFolder + graphfilename
             foundlabels = []
 
@@ -244,9 +259,16 @@ def main():
 
             extension = os.path.splitext(originalFileName)[1]
 
-            # Create hash for image url
-            hashObj = hashlib.sha1(imagePath.encode('utf-8'))
-            imageHash = hashObj.hexdigest()
+            if "?" in extension:
+                extension = extension.split("?")[0]
+
+            if (not imagesRemote) and filenameId:
+                imageHash = inputRow[imagesColumnIdx].split(".")[0]
+                print("\tImage filename:",inputRow[imagesColumnIdx])
+            else:
+                # Create hash for image url
+                hashObj = hashlib.sha1(imagePath.encode('utf-8'))
+                imageHash = hashObj.hexdigest()
             print("\tImage ID: %s" % (imageHash))
 
             # Make image copy
@@ -266,189 +288,207 @@ def main():
                     print("done")
                 else:
                     print("\tCopy already existed")
+            if not downloadMode:
+                if makeNetwork:
+                    nodelink = inputRow[linkColumnIdx]
+                    graph.add_node(imageHash, type='image', label='_image', file=copyFilename, link=nodelink)
 
-            if makeNetwork:
-                nodelink = inputRow[linkColumnIdx]
-                graph.add_node(imageHash, type='image', label='_image', file=copyFilename, link=nodelink)
-
-            # Process image
-
-            responseFile = cacheFolder + imageHash + '.json'
-            responseFileCp = cacheCopyFolder + imageHash + '.json'
-
-            if not (os.path.isfile(responseFile)):
-                if imagesRemote and forceBase64 and saveImageCopy:
-                    # If images are remote but are to be processed through local base64 coding and copies have been made, use copies for network traffic efficiency.
-                    apirequest.annotateImage(copyFilePath, isRemote=False)
-                    responseData = apirequest.getResponse()
-                    if not responseData:
-                        outputCSV.writerow(outputRow)
-                        continue
+                # Process image
+                if timeseries:
+                    responseFile = cacheFolder + imageHash + "_" + curDateTime + '.json'
+                    responseFileCp = cacheCopyFolder + imageHash + "_" + curDateTime + '.json'
                 else:
-                    apirequest.annotateImage(imagePath, isRemote=imagesRemote, base64Encode=forceBase64)
-                    responseData = apirequest.getResponse()
-                    if not responseData:
-                        outputCSV.writerow(outputRow)
-                        continue
-                with open(responseFile, 'w', encoding='utf8') as outFile:
-                    json.dump(responseData, outFile, indent=4, sort_keys=True)
-                copyfile(responseFile, responseFileCp)
+                    responseFile = cacheFolder + imageHash + '.json'
+                    responseFileCp = cacheCopyFolder + imageHash + '.json'
 
-            else:
-                # If there is a json annotation file save in cache, use that instead of processing the image again.
-                print("\t*ATTENTION* Using cached content (remove all files in the cache folder if you see this message and the tool is not working yet)")
-                copyfile(responseFile, responseFileCp)
-                responseData = json.load(open(responseFile, encoding='utf8'))
-
-            # Parse API response
-            try:
-                response = responseData['responses'][0]
-            except Exception:
-                print('\t*ATTENTION* Vision API returned an error for this image. Check JSON file for details.\n\tMoving on to next image.\n')
-                outputCSV.writerow(outputRow)
-                continue
-
-            # Safe Search
-            if 'safeSearchAnnotation' in response:
-                gv_ss_adult = response['safeSearchAnnotation']['adult']
-                gv_ss_spoof = response['safeSearchAnnotation']['spoof']
-                gv_ss_medical = response['safeSearchAnnotation']['medical']
-                gv_ss_violence = response['safeSearchAnnotation']['violence']
-            else:
-                gv_ss_adult = "NONE"
-                gv_ss_spoof = "NONE"
-                gv_ss_medical = "NONE"
-                gv_ss_violence = "NONE"
-
-            # Labels
-            if 'labelAnnotations' in response:
-                gv_labels = []
-                for label in response['labelAnnotations']:
-                    if label['score'] < labelThreshold:
-                        continue;
-                    if label['mid']=='':
-                        label_id = "_" + label['description']
+                if not (os.path.isfile(responseFile)):
+                    if imagesRemote and forceBase64 and saveImageCopy:
+                        # If images are remote but are to be processed through local base64 coding and copies have been made, use copies for network traffic efficiency.
+                        apirequest.annotateImage(copyFilePath, isRemote=False)
+                        responseData = apirequest.getResponse()
+                        if not responseData:
+                            outputCSV.writerow(outputRow)
+                            continue
                     else:
-                        label_id = label['mid']
-                    if makeNetwork:
-                        if not label_id in foundlabels:
-                            foundlabels.append(label_id)
-                            graph.add_node(label_id,type='gv_label', label=label['description'], mid=label['mid'], description=label['description'])
-                        graph.add_edge(imageHash, label_id, score=label['score'], topicality=label['topicality'])
-                    if includeScore:
-                        gv_labels.append(label['description'] + "(" + str(label['score']) + ")")
+                        apirequest.annotateImage(imagePath, isRemote=imagesRemote, base64Encode=forceBase64)
+                        responseData = apirequest.getResponse()
+                        if not responseData:
+                            outputCSV.writerow(outputRow)
+                            continue
+                    with open(responseFile, 'w', encoding='utf8') as outFile:
+                        json.dump(responseData, outFile, indent=4, sort_keys=True)
+                    copyfile(responseFile, responseFileCp)
+
+                else:
+                    # If there is a json annotation file save in cache, use that instead of processing the image again.
+                    print("\t*ATTENTION* Using cached content (remove all files in the cache folder if you see this message and the tool is not working yet)")
+                    copyfile(responseFile, responseFileCp)
+                    responseData = json.load(open(responseFile, encoding='utf8'))
+
+                # Parse API response
+                try:
+                    response = responseData['responses'][0]
+                except Exception:
+                    print('\t*ATTENTION* Vision API returned an error for this image. Check JSON file for details.\n\tMoving on to next image.\n')
+                    outputCSV.writerow(outputRow)
+                    continue
+
+                # Safe Search
+                if 'safeSearchAnnotation' in response:
+                    gv_ss_adult = response['safeSearchAnnotation']['adult']
+                    gv_ss_spoof = response['safeSearchAnnotation']['spoof']
+                    gv_ss_medical = response['safeSearchAnnotation']['medical']
+                    gv_ss_violence = response['safeSearchAnnotation']['violence']
+                else:
+                    gv_ss_adult = "NONE"
+                    gv_ss_spoof = "NONE"
+                    gv_ss_medical = "NONE"
+                    gv_ss_violence = "NONE"
+
+                # Labels
+                if 'labelAnnotations' in response:
+                    gv_labels = []
+                    for label in response['labelAnnotations']:
+                        if 'score' in label:
+                            if label['score'] < labelThreshold:
+                                continue;
+                            if label['mid']=='':
+                                label_id = "_" + label['description']
+                            else:
+                                label_id = label['mid']
+                        else:
+                            continue;
+                        if makeNetwork:
+                            if not label_id in foundlabels:
+                                foundlabels.append(label_id)
+                                graph.add_node(label_id,type='gv_label', label=label['description'], mid=label['mid'], description=label['description'])
+                            graph.add_edge(imageHash, label_id, score=label['score'], topicality=label['topicality'])
+                        if includeScore:
+                            gv_labels.append(label['description'] + "(" + str(label['score']) + ")")
+                        else:
+                            gv_labels.append(label['description'])
+                    gv_labels = ",".join(gv_labels)
+                else:
+                    gv_labels = "NONE"
+
+                # Text
+                if 'textAnnotations' in response:
+                    gv_text = response['textAnnotations'][0]['description']
+                    gv_text = re.sub("[\n\t\r]", " ", gv_text)
+                    gv_text_lang = response['textAnnotations'][0]['locale']
+                else:
+                    gv_text = "NONE"
+                    gv_text_lang = "NONE"
+
+                # Web Detection
+                if 'webDetection' in response:
+                    if 'fullMatchingImages' in response['webDetection']:
+                        gv_web_full_matching_images = []
+                        for url in response['webDetection']['fullMatchingImages']:
+                            gv_web_full_matching_images.append(url['url'].replace(",", "%2C"))
+                        gv_web_full_matching_images = ",".join(gv_web_full_matching_images)
                     else:
-                        gv_labels.append(label['description'])
-                gv_labels = ",".join(gv_labels)
-            else:
-                gv_labels = "NONE"
-
-            # Text
-            if 'textAnnotations' in response:
-                gv_text = response['textAnnotations'][0]['description']
-                gv_text = re.sub("[\n\t\r]", " ", gv_text)
-                gv_text_lang = response['textAnnotations'][0]['locale']
-            else:
-                gv_text = "NONE"
-                gv_text_lang = "NONE"
-
-            # Web Detection
-            if 'webDetection' in response:
-                if 'fullMatchingImages' in response['webDetection']:
-                    gv_web_full_matching_images = []
-                    for url in response['webDetection']['fullMatchingImages']:
-                        gv_web_full_matching_images.append(url['url'].replace(",", "%2C"))
-                    gv_web_full_matching_images = ",".join(gv_web_full_matching_images)
+                        gv_web_full_matching_images = "NONE"
+                    if 'pagesWithMatchingImages' in response['webDetection']:
+                        gv_web_pages_with_full_matching_images = []
+                        gv_web_pages_with_partial_matching_images = []
+                        for page in response['webDetection']['pagesWithMatchingImages']:
+                            if 'fullMatchingImages' in page:
+                                gv_web_pages_with_full_matching_images.append(page['url'].replace(",", "%2C"))
+                            elif 'partialMatchingImages' in page:
+                                gv_web_pages_with_partial_matching_images.append(page['url'].replace(",", "%2C"))
+                        gv_web_pages_with_full_matching_images = ",".join(gv_web_pages_with_full_matching_images)
+                        gv_web_pages_with_partial_matching_images = ",".join(gv_web_pages_with_partial_matching_images)
+                    else:
+                        gv_web_pages_with_full_matching_images = "NONE"
+                        gv_web_pages_with_partial_matching_images = "NONE"
+                    if 'partialMatchingImages' in response['webDetection']:
+                        gv_web_partial_matching_images = []
+                        for url in response['webDetection']['partialMatchingImages']:
+                            gv_web_partial_matching_images.append(url['url'].replace(",", "%2C"))
+                        gv_web_partial_matching_images = ",".join(gv_web_partial_matching_images)
+                    else:
+                        gv_web_partial_matching_images = "NONE"
+                    if 'visuallySimilarImages' in response['webDetection']:
+                        gv_web_visually_similar_images = []
+                        for url in response['webDetection']['visuallySimilarImages']:
+                            gv_web_visually_similar_images.append(url['url'].replace(",", "%2C"))
+                        gv_web_visually_similar_images = ",".join(gv_web_visually_similar_images)
+                    else:
+                        gv_web_visually_similar_images = "NONE"
+                    if 'webEntities' in response['webDetection']:
+                        gv_web_entities = []
+                        for entity in response['webDetection']['webEntities']:
+                            if 'description' in entity:
+                                description = entity['description']
+                            else:
+                                description = "NONE"
+                            if 'score' in entity:
+                                gv_web_entities.append(description + "(" + str(entity['score']) + ")")
+                            else:
+                                gv_web_entities.append(description + "(NONE)")
+                        gv_web_entities = ",".join(gv_web_entities)
+                    else:
+                        gv_web_entities = "NONE"
                 else:
                     gv_web_full_matching_images = "NONE"
-                if 'pagesWithMatchingImages' in response['webDetection']:
-                    gv_web_pages_with_matching_images = []
-                    for url in response['webDetection']['pagesWithMatchingImages']:
-                        gv_web_pages_with_matching_images.append(url['url'].replace(",", "%2C"))
-                    gv_web_pages_with_matching_images = ",".join(gv_web_pages_with_matching_images)
-                else:
-                    gv_web_pages_with_matching_images = "NONE"
-                if 'partialMatchingImages' in response['webDetection']:
-                    gv_web_partial_matching_images = []
-                    for url in response['webDetection']['partialMatchingImages']:
-                        gv_web_partial_matching_images.append(url['url'].replace(",", "%2C"))
-                    gv_web_partial_matching_images = ",".join(gv_web_partial_matching_images)
-                else:
+                    gv_web_pages_with_full_matching_images = "NONE"
+                    gv_web_pages_with_partial_matching_images = "NONE"
                     gv_web_partial_matching_images = "NONE"
-                if 'visuallySimilarImages' in response['webDetection']:
-                    gv_web_visually_similar_images = []
-                    for url in response['webDetection']['visuallySimilarImages']:
-                        gv_web_visually_similar_images.append(url['url'].replace(",", "%2C"))
-                    gv_web_visually_similar_images = ",".join(gv_web_visually_similar_images)
-                else:
                     gv_web_visually_similar_images = "NONE"
-                if 'webEntities' in response['webDetection']:
-                    gv_web_entities = []
-                    for entity in response['webDetection']['webEntities']:
-                        if 'description' in entity:
-                            description = entity['description']
-                        else:
-                            description = "NONE"
-                        gv_web_entities.append(description + "(" + str(entity['score']) + ")")
-                    gv_web_entities = ",".join(gv_web_entities)
-                else:
                     gv_web_entities = "NONE"
-            else:
-                gv_web_full_matching_images = "NONE"
-                gv_web_pages_with_matching_images = "NONE"
-                gv_web_partial_matching_images = "NONE"
-                gv_web_visually_similar_images = "NONE"
-                gv_web_entities = "NONE"
 
-            # Face
-            if 'faceAnnotations' in response:
-                gv_num_faces = 0;
-                gv_face_joy = 'VERY_UNLIKELY'
-                gv_face_sorrow = 'VERY_UNLIKELY'
-                gv_face_anger = 'VERY_UNLIKELY'
-                gv_face_surprise = 'VERY_UNLIKELY'
-                for face in response['faceAnnotations']:
-                    gv_face_joy = f.likelihoodCompare(gv_face_joy, face['joyLikelihood'])
-                    gv_face_sorrow = f.likelihoodCompare(gv_face_sorrow, face['sorrowLikelihood'])
-                    gv_face_anger = f.likelihoodCompare(gv_face_anger, face['angerLikelihood'])
-                    gv_face_surprise = f.likelihoodCompare(gv_face_surprise, face['surpriseLikelihood'])
-                    gv_num_faces +=1
-            else:
-                gv_face_joy = 'NONE'
-                gv_face_sorrow = 'NONE'
-                gv_face_anger = 'NONE'
-                gv_face_surprise = 'NONE'
-                gv_num_faces = '0'
+                # Face
+                if 'faceAnnotations' in response:
+                    gv_num_faces = 0;
+                    gv_face_joy = 'VERY_UNLIKELY'
+                    gv_face_sorrow = 'VERY_UNLIKELY'
+                    gv_face_anger = 'VERY_UNLIKELY'
+                    gv_face_surprise = 'VERY_UNLIKELY'
+                    for face in response['faceAnnotations']:
+                        gv_face_joy = f.likelihoodCompare(gv_face_joy, face['joyLikelihood'])
+                        gv_face_sorrow = f.likelihoodCompare(gv_face_sorrow, face['sorrowLikelihood'])
+                        gv_face_anger = f.likelihoodCompare(gv_face_anger, face['angerLikelihood'])
+                        gv_face_surprise = f.likelihoodCompare(gv_face_surprise, face['surpriseLikelihood'])
+                        gv_num_faces +=1
+                else:
+                    gv_face_joy = 'NONE'
+                    gv_face_sorrow = 'NONE'
+                    gv_face_anger = 'NONE'
+                    gv_face_surprise = 'NONE'
+                    gv_num_faces = '0'
 
             # Add values to output row
             outputRow.append(originalFileName)
             outputRow.append(imageHash)
             outputRow.append(extension)
             outputRow.append(copyFilename)
-            outputRow.append(gv_ss_adult)
-            outputRow.append(gv_ss_spoof)
-            outputRow.append(gv_ss_medical)
-            outputRow.append(gv_ss_violence)
-            outputRow.append(gv_labels)
-            outputRow.append(gv_text)
-            outputRow.append(gv_text_lang)
-            outputRow.append(gv_web_entities)
-            outputRow.append(gv_web_full_matching_images)
-            outputRow.append(gv_web_partial_matching_images)
-            outputRow.append(gv_web_pages_with_matching_images)
-            outputRow.append(gv_web_visually_similar_images)
-            outputRow.append(gv_num_faces)
-            outputRow.append(gv_face_joy)
-            outputRow.append(gv_face_sorrow)
-            outputRow.append(gv_face_anger)
-            outputRow.append(gv_face_surprise)
+            if not downloadMode:
+                outputRow.append(gv_ss_adult)
+                outputRow.append(gv_ss_spoof)
+                outputRow.append(gv_ss_medical)
+                outputRow.append(gv_ss_violence)
+                outputRow.append(gv_labels)
+                outputRow.append(gv_text)
+                outputRow.append(gv_text_lang)
+                outputRow.append(gv_web_entities)
+                outputRow.append(gv_web_full_matching_images)
+                outputRow.append(gv_web_partial_matching_images)
+                outputRow.append(gv_web_pages_with_full_matching_images)
+                outputRow.append(gv_web_pages_with_partial_matching_images)
+                outputRow.append(gv_web_visually_similar_images)
+                outputRow.append(gv_num_faces)
+                outputRow.append(gv_face_joy)
+                outputRow.append(gv_face_sorrow)
+                outputRow.append(gv_face_anger)
+                outputRow.append(gv_face_surprise)
 
             # Write results to output file
             outputCSV.writerow(outputRow)
-        if makeNetwork:
+        if makeNetwork and not downloadMode:
             nx.write_gexf(graph, graphfilepath)
     except KeyboardInterrupt:
-        if makeNetwork:
+        if makeNetwork and not downloadMode:
             if graph:
                 nx.write_gexf(graph,graphfilepath)
         print("\n\n**Script interrupted by user**\n\n")
