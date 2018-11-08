@@ -1,4 +1,6 @@
-config.ini
+config*
+
+!config_sample.txt
 
 data/
 
