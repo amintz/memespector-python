@@ -26,7 +26,7 @@ InputImageFolder:
 ; Not needed in case of remote images, if local images are referenced by absolute paths, or if input is a folder
 ; Should indicate the absolute path of a folder
 
-LinkColumn: link
+LinkColumn:
 ; Optional for tabular file.
 ; Should indicate the header for a column containing URLs meaningful for each image (i.e. the URL for the post or page).
 ; If indicated, will be passed on to the generated graph file.
@@ -37,21 +37,6 @@ Delimiter: ,
 
 Limit: 20
 ; Maximum number of images to process (use 0 for unlimited processing).
-
-;-----------------------------------------------------
-
-[Output configuration]
-
-TimeSeries: no
-; Set to YES to add a timestamp to the file names.
-; Useful for being able to run the same dataset more than once and check variations for the results over time.
-
-SaveImageCopy: yes
-; Set YES if you wish to download copies of the remote images
-
-LabelScoreFilter: 0.5
-; Minimum score to include the label in the processed files.
-; Set 0 if you do not want to filter the labels (Google only returns labels scoring over 0.5).
 
 ;-----------------------------------------------------
 
@@ -72,6 +57,22 @@ Face:           no
 MaxResults:     0
 ; Limits maximum number of results per aspect.
 ; Set to 0 if you do not want to send this parameter in the request to Google (get the response within the default maximum results for each aspect)
+
+;-----------------------------------------------------
+
+[Output configuration]
+
+TimeSeries: no
+; Set to YES to add a timestamp to the file names.
+; Useful for being able to run the same dataset more than once and check variations for the results over time.
+
+SaveImageCopy: yes
+; Set YES if you wish to download copies of the remote images
+
+LabelScoreFilter: 0.5
+; Minimum score to include the label in the processed files.
+; Set 0 if you do not want to filter the labels (Google only returns labels scoring over 0.5).
+
 
 ;-----------------------------------------------------
 

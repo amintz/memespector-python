@@ -1,6 +1,4 @@
-config*
-
-!config_sample.txt
+config.txt
 
 data/
 

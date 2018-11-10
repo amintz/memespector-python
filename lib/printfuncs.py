@@ -2,6 +2,8 @@ import sys
 from . import constants as const
 from . import settings
 
+# TODO: Reorganize printing functions and message constants
+
 def printlog(text="", end="\n"):
     # log.write(text+end)
     print(text, end=end)
@@ -59,7 +61,7 @@ def copyexisted():
     printlog("\tCopy already existed")
 
 def annotationexisted():
-    printlog("\t*ATTENTION* Using cached content (remove all files in the cache folder if you see this message and the tool is not working yet)")
+    printlog("\t*ATTENTION* Using cached content present in the 'annotations' folder. Delete files if you wish to reprocess images.")
 
 def apierrorwarning():
     printlog('\t*ATTENTION* Vision API returned an error for this image. Check JSON file for details.\n\tMoving on to next image.\n')

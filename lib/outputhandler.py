@@ -27,10 +27,11 @@ class OutputHandler:
                     sys.exit('Answer not understood. Exiting.')
         else:
             os.makedirs(settings.outputsFolder)
-        if not os.path.exists(settings.cacheFolder):
+        if not settings.downloadMode and not os.path.exists(settings.cacheFolder):
             os.makedirs(settings.cacheFolder)
-        if not os.path.exists(settings.imageCpFolder) and settings.saveImageCopy:
+        if (settings.saveImageCopy or settings.downloadMode) and not os.path.exists(settings.imageCpFolder):
             os.makedirs(settings.imageCpFolder)
+        # TODO: Logging
         # if not os.path.exists(settings.logsFolder):
             # os.makedirs(settings.logsFolder)
 
@@ -43,8 +44,9 @@ class OutputHandler:
         else:
             self.basename = os.path.basename(settings.input).split(".")[0]
 
+        # TODO: Logging
         # Create log file
-        self.logfp = os.path.join(settings.logsFolder, self.basename + "_" + self.datetime + ".log")
+        # self.logfp = os.path.join(settings.logsFolder, self.basename + "_" + self.datetime + ".log")
 
         # ----------------------
         # Create CSV output file
@@ -196,7 +198,9 @@ class OutputHandler:
     # Write graph file
     # ----------------------
     def writelabelgraph(self):
-        nx.write_gexf(self.labelgraph, self.labelgexffp)
+        # TODO: Option to automatically apply network layout
+        if not settings.downloadMode:
+            nx.write_gexf(self.labelgraph, self.labelgexffp)
 
     # ----------------------
     # Get date time
