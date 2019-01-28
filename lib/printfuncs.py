@@ -58,10 +58,10 @@ def done():
     printlog("done.")
 
 def copyexisted():
-    printlog("\tCopy already existed")
+    printlog("copy already existed")
 
 def annotationexisted():
-    printlog("\t*ATTENTION* Using cached content present in the 'annotations' folder. Delete files if you wish to reprocess images.")
+    printlog("\t*ATTENTION* Using cached content located in the 'annotations' folder. Delete files if you wish to reprocess images.")
 
 def apierrorwarning():
     printlog('\t*ATTENTION* Vision API returned an error for this image. Check JSON file for details.\n\tMoving on to next image.\n')
@@ -70,4 +70,4 @@ def interrupted():
     printlog("\n\n**Script interrupted by user**\n\n")
 
 def exception(exc):
-    printlog(const.warning_head + "\t" + exc)
+    printlog(const.warning_head + "\t" + str(exc))

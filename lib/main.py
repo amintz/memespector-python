@@ -29,7 +29,6 @@ def main():
         # Keep track of labels found
         foundlabels = []
         for i in range(settings.procLimit):
-
             inputhandle.next()
             curimg = inputhandle.getCurImg()
             output.resetrow()
@@ -37,28 +36,22 @@ def main():
             output.loadimginfo()
             output.saveimg()
 
-
             if settings.downloadMode:
                 output.writerow()
                 continue
             else:
+                # If there is a json annotation file saved in cache, use that
                 if output.annotationexists():
-                    # If there is a json annotation file saved in cache, use that
                     printfuncs.annotationexisted()
                     goodparse = apirequest.loadResponse(output.annotationpath())
-                    if not goodparse:
-                        print(const.api_error_warning + responseFile)
-                        output.writerow()
-                        continue
                 else:
                     goodparse = apirequest.annotateImage(curimg)
                     output.saveannotation(apirequest.getResponseData())
-
                 if goodparse:
                     output.loadparsedann(apirequest.getParsedResponse())
                     output.loadlabels(apirequest.getlabels())
                 else:
-                    printfuncs.exception(const.api_error_warning + responseFile)
+                    printfuncs.exception(const.api_error_warning + output.annotationpath())
                     output.writerow()
                     continue
 
@@ -71,6 +64,3 @@ def main():
         if not settings.downloadMode:
             output.writelabelgraph()
         printfuncs.interrupted()
-    except Exception:
-        print(const.execution_error)
-        traceback.print_exc(file=sys.stdout)

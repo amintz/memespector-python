@@ -2,13 +2,11 @@ import requests
 from . import printfuncs
 
 def saveimage(url, filep):
-    printfuncs.copying()
     try:
-        image = requests.get(url, allow_redirects=True)
+        image = requests.get(url, allow_redirects=True, timeout=5)
         with open(filep, 'wb') as file:
             file.write(image.content)
     except Exception as exc:
-        print()
         printfuncs.exception(exc)
         return False
     printfuncs.done()
@@ -16,8 +14,8 @@ def saveimage(url, filep):
 def getimage(url):
     printfuncs.retrievingimg()
     try:
-        image = requests.get(url, allow_redirects=True)
-    except Exception:
+        image = requests.get(url, allow_redirects=True, timeout=5)
+    except Exception as exc:
         printfuncs.exception(exc)
         return False
     printfuncs.done()

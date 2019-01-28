@@ -1,4 +1,7 @@
-import base64, re, json, os
+import base64
+import re
+import json
+import os
 from . import settings, printfuncs
 from . import networkfunctions as net
 from . import constants as const
@@ -100,11 +103,21 @@ class VisionApiRequest:
 
     def parseReponse(self):
         self.cleanParsedResponse()
-        try:
-            responseNode = self.response['responses'][0]
-        except Exception as exc:
-            printfuncs.printlog(exc)
-            return False
+
+        if 'responses' in self.response:
+            responseNode = self.response['responses'][0]        
+        elif 'error' in self.response:
+            message = self.response['error']['message']
+            code = self.response['error']['code']
+            if code==400:
+                raise Exception("\n**ERROR**\nAPI returned a 'Bad Request' error. Might be a problem with you API key or with the image file or url - check it is accesssible and not corrupted.")
+            elif code==403 or code==401:
+                raise Exception("\n**ERROR**\nAPI returned a 'Permission denied' or a 'Unauthorized' error. Might be a problem with the API key")
+            else:
+                raise Exception("\n**ERROR**\nAPI returned an error. Check file in 'annotations' folder for more information.")
+        else:
+            raise ValueError("API returned an invalid response. Check annotation file.")
+            
         # Safe Search
         if settings.safeSearchDetection:
             if 'safeSearchAnnotation' in responseNode:
@@ -210,7 +223,9 @@ class VisionApiRequest:
                 path = img['path']
                 isremote = False
             else:
+                isremote=True
                 printfuncs.exception("File not found")
+                return False
         else:
             if os.path.isfile(img['copyfp']):
                 path = img['copyfp']

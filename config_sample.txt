@@ -13,7 +13,7 @@ ProjectFolder: memespector-outputs
 
 Input: /path/to/thelistcontainingtheurls.csv
 ; Must be an absolute path. Outputs will be put in the parent folder
-; Can be either: tabular file (comma- or tab-separated), plain text file or a folder containing images.
+; Can be either: tabular file (comma- or tab-separated) or a folder containing images.
 ; In Windows, would look like C:\path\to\thelistcontainingurls.csv
 
 ImagesColumn: imageurl
@@ -67,7 +67,7 @@ TimeSeries: no
 ; Useful for being able to run the same dataset more than once and check variations for the results over time.
 
 SaveImageCopy: yes
-; Set YES if you wish to download copies of the remote images
+; Set YES if you wish to download copies of the remote images or make copies of local images to a folder
 
 LabelScoreFilter: 0.5
 ; Minimum score to include the label in the processed files.

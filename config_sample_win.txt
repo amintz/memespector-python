@@ -1,0 +1,89 @@
+;------------------------------------------
+;CONFIGURATION FILE FOR MEMESPECTOR PYTHON
+;------------------------------------------
+
+[Project]
+
+ProjectFolder: memespector-outputs
+; Name of the folder for bundling the script's outputs
+
+;-----------------------------------------------------
+
+[Input configuration]
+
+Input: /path/to/thelistcontainingtheurls.csv
+; Must be an absolute path. Outputs will be put in the parent folder
+; Can be either: tabular file (comma- or tab-separated) or a folder containing images.
+; In Windows, would look like C:\path\to\thelistcontainingurls.csv
+
+ImagesColumn: imageurl
+; ** Required for tabular file. **
+; Should indicate the header for a column containing image file names or URL addresses, depending on whether files are local or remote.
+; Header must be unique within the file.
+
+InputImageFolder:
+; ** Required for local images, when reference in table or list is a relative path **
+; Not needed in case of remote images, if local images are referenced by absolute paths, or if input is a folder
+; Should indicate the absolute path of a folder
+
+LinkColumn:
+; Optional for tabular file.
+; Should indicate the header for a column containing URLs meaningful for each image (i.e. the URL for the post or page).
+; If indicated, will be passed on to the generated graph file.
+
+Delimiter: ,
+; ** Required for tabular file. **
+; Set to the character used to delimit the columns of the input file. Set to '\t' (without quotes) for tab.
+
+Limit: 20
+; Maximum number of images to process (use 0 for unlimited processing).
+
+;-----------------------------------------------------
+
+[Api setup]
+
+; Set YES to the modules you wish to activate in your requests
+; If no modules are activated, tool runs in 'download' mode and just downloads the listed pictures
+
+ApiKey: YOUR_API_KEY_HERE
+; **Be careful not to share the file containing your API Key **
+
+Label:          no
+SafeSearch:     no
+Text:           no
+Web:            no
+Face:           no
+
+MaxResults:     0
+; Limits maximum number of results per aspect.
+; Set to 0 if you do not want to send this parameter in the request to Google (get the response within the default maximum results for each aspect)
+
+;-----------------------------------------------------
+
+[Output configuration]
+
+TimeSeries: no
+; Set to YES to add a timestamp to the file names.
+; Useful for being able to run the same dataset more than once and check variations for the results over time.
+
+SaveImageCopy: yes
+; Set YES if you wish to download copies of the remote images or make copies of local ones.
+
+LabelScoreFilter: 0.5
+; Minimum score to include the label in the processed files.
+; Set 0 if you do not want to filter the labels (Google only returns labels scoring over 0.5).
+
+
+;-----------------------------------------------------
+
+[Advanced settings]
+
+; You probably will not need to change things here
+
+ForceBase64: yes
+; Leave 'yes' if unsure.
+; Set to YES to process remote images using your computer as a 'middle-man'. Slightly slower and with more network traffic, but necessary when Google Vision API is unable to retrieve images by itself. Some platforms do not allow Google to retrieve images directly.
+
+LogFolder: log
+ImageCopyFolder: img
+CacheFolder: annotations

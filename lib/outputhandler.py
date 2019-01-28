@@ -1,4 +1,5 @@
 import os, csv, sys, datetime, json
+from shutil import copyfile
 import networkx as nx
 from . import constants as const
 from . import settings, printfuncs
@@ -116,10 +117,14 @@ class OutputHandler:
 
     def saveimg(self):
         curimg = self.inputhandle.getCurImg()
-        if curimg['isremote'] and settings.saveImageCopy:
+        if (curimg['isremote'] or curimg['isabs']) and settings.saveImageCopy:
+            printfuncs.copying()
             copyfp = curimg['copyfp']
             if not os.path.isfile(copyfp):
-                net.saveimage(curimg['path'], copyfp)
+                if curimg['isremote']:
+                    net.saveimage(curimg['path'], copyfp)
+                else:
+                    copyfile(curimg['path'], copyfp)
             else:
                 printfuncs.copyexisted()
 
@@ -193,6 +198,9 @@ class OutputHandler:
     # ----------------------
     def addimagenode(self, id, file, link):
         self.labelgraph.add_node(id, type='image', label='', file=file, link=link)
+        for field in self.inrow:
+            if field not in self.labelgraph.node[id]:
+                self.labelgraph.node[id][field] = self.inrow[field]
 
     # ----------------------
     # Write graph file
