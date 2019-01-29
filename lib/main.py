@@ -28,11 +28,13 @@ def main():
 
         # Keep track of labels found
         foundlabels = []
+        error_count = 0
+
         for i in range(settings.procLimit):
             inputhandle.next()
             curimg = inputhandle.getCurImg()
             output.resetrow()
-            printfuncs.itemProcess(i, settings.procLimit,curimg['path'],curimg['id'])
+            printfuncs.itemProcess(i, settings.procLimit,curimg['path'],curimg['id'], error_count)
             output.loadimginfo()
             output.saveimg()
 
@@ -42,17 +44,27 @@ def main():
             else:
                 # If there is a json annotation file saved in cache, use that
                 if output.annotationexists():
-                    printfuncs.annotationexisted()
-                    goodparse = apirequest.loadResponse(output.annotationpath())
-                else:
-                    goodparse = apirequest.annotateImage(curimg)
+                    try:
+                        goodparse = apirequest.loadResponse(output.annotationpath())
+                    except Warning:
+                        goodparse = False
+                        retry = True
+                        printfuncs.annotationexistederror()
+                    else:
+                        printfuncs.annotationexisted()
+                if retry or not output.annotationexists():
+                    try:
+                        goodparse = apirequest.annotateImage(curimg)
+                    except Warning:
+                        goodparse = False
                     output.saveannotation(apirequest.getResponseData())
                 if goodparse:
                     output.loadparsedann(apirequest.getParsedResponse())
                     output.loadlabels(apirequest.getlabels())
                 else:
-                    printfuncs.exception(const.api_error_warning + output.annotationpath())
+                    printfuncs.apierrorwarning(output.annotationpath())
                     output.writerow()
+                    error_count += 1
                     continue
 
                 # Write this image data to output file

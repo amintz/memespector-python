@@ -110,11 +110,11 @@ class VisionApiRequest:
             message = self.response['error']['message']
             code = self.response['error']['code']
             if code==400:
-                raise Exception("\n**ERROR**\nAPI returned a 'Bad Request' error. Might be a problem with you API key or with the image file or url - check it is accesssible and not corrupted.")
+                raise Warning("\n**ERROR**\nAPI returned a 'Bad Request' error. Might be a problem with you API key or with the image file or url - check it is accesssible and not corrupted.")
             elif code==403 or code==401:
                 raise Exception("\n**ERROR**\nAPI returned a 'Permission denied' or a 'Unauthorized' error. Might be a problem with the API key")
             else:
-                raise Exception("\n**ERROR**\nAPI returned an error. Check file in 'annotations' folder for more information.")
+                raise Warning("\n**ERROR**\nAPI returned an error. Check file in 'annotations' folder for more information.")
         else:
             raise ValueError("API returned an invalid response. Check annotation file.")
             

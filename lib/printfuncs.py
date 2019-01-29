@@ -40,8 +40,11 @@ def outputInit():
     printlog("\tCache folder\n\t\t" + settings.cacheFolder)
     printlog("\n-------------------------")
 
-def itemProcess(i, limit, path, id):
-    printlog("\nImage " + str(i+1) + " of " + str(limit))
+def itemProcess(i, limit, path, id, error_count):
+    if error_count == 0:
+        printlog("\nImage " + str(i+1) + " of " + str(limit))
+    else:
+        printlog("\nImage " + str(i+1) + " of " + str(limit) + "\n[Failed images: " + str(error_count) + "]")
     printlog("\tImage path: " + path)
     printlog("\tImage ID: " + id)
 
@@ -63,11 +66,17 @@ def copyexisted():
 def annotationexisted():
     printlog("\t*ATTENTION* Using cached content located in the 'annotations' folder. Delete files if you wish to reprocess images.")
 
-def apierrorwarning():
-    printlog('\t*ATTENTION* Vision API returned an error for this image. Check JSON file for details.\n\tMoving on to next image.\n')
+def annotationexistederror():
+    printlog("\t*ATTENTION* Bad annotation found in cache. Retrying request.")
+
+def apierrorwarning(annotationpath):
+    printlog('\n\t*ERROR*\n\tVision API returned an error. If persistent, could be an API Key issue.\n\tCheck JSON file for details: ' + annotationpath + '\n\tMoving on to next image.\n')
 
 def interrupted():
     printlog("\n\n**Script interrupted by user**\n\n")
+
+def annotationerrorwarning(annotationpath):
+    printlog('\t*ATTENTION* Invalid annotation returned for this image. Check annotation file for more information: ' + annotationpath)
 
 def exception(exc):
     printlog(const.warning_head + "\t" + str(exc))

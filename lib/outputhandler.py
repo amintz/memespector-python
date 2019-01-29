@@ -115,6 +115,10 @@ class OutputHandler:
         else:
             self.inrow = {}
 
+    # ----------------------
+    # Save image copy 
+    # ----------------------
+
     def saveimg(self):
         curimg = self.inputhandle.getCurImg()
         if (curimg['isremote'] or curimg['isabs']) and settings.saveImageCopy:
@@ -128,6 +132,10 @@ class OutputHandler:
             else:
                 printfuncs.copyexisted()
 
+    # ----------------------
+    # Check if annotation exists for the image
+    # ----------------------
+
     def annotationexists(self):
         curimg = self.inputhandle.getCurImg()
         if settings.timeseries:
@@ -136,12 +144,24 @@ class OutputHandler:
             self.annfp = os.path.join(settings.cacheFolder, curimg['id'] + ".json")
         return os.path.isfile(self.annfp)
 
+    # ----------------------
+    # Get annotation file path
+    # ----------------------
+
     def annotationpath(self):
         return self.annfp
+    
+    # ----------------------
+    # Load parsed annotation
+    # ----------------------
 
     def loadparsedann(self, annotations):
         for key, val in annotations.items():
             self.updaterowval(key, val)
+
+    # ----------------------
+    # Load labels and add to graph
+    # ----------------------
 
     def loadlabels(self, labels):
         curimg = self.inputhandle.getCurImg()
@@ -152,12 +172,20 @@ class OutputHandler:
                     self.addlabelnode(label['id'], label['description'], label['mid'])
                 self.addlabeledge(curimg['id'], label['id'], label['score'], label['topicality'])
 
+    # ----------------------
+    # Save annotation
+    # ----------------------
+
     def saveannotation(self, data):
         try:
             with open(self.annfp, 'w', encoding='utf8') as ann:
                 json.dump(data, ann, indent=4, sort_keys=True)
         except Exception:
             raise
+
+    # ----------------------
+    # Load current image information
+    # ----------------------
 
     def loadimginfo(self):
         curimg = self.inputhandle.getCurImg()
@@ -170,6 +198,10 @@ class OutputHandler:
         else:
             self.addimagenode(curimg['id'], curimg['copyfn'], curimg['link'])
 
+    # ----------------------
+    # Update row values
+    # ----------------------
+
     def updaterowval(self, key, value):
         if key in self.csv.fieldnames:
             self.outrow[key] = value
@@ -178,7 +210,14 @@ class OutputHandler:
     # Write row to CSV
     # ----------------------
     def writerow(self):
-        row = {**self.inrow, **self.outrow}
+        row = {}
+
+        for key, value in self.inrow.items():
+            if key in self.csv.fieldnames:
+                row[key] = value
+        
+        row = {**row, **self.outrow}
+
         self.csv.writerow(row)
 
     # ----------------------
@@ -199,7 +238,7 @@ class OutputHandler:
     def addimagenode(self, id, file, link):
         self.labelgraph.add_node(id, type='image', label='', file=file, link=link)
         for field in self.inrow:
-            if field not in self.labelgraph.node[id]:
+            if (field in self.csv.fieldnames) and (field not in self.labelgraph.node[id]):
                 self.labelgraph.node[id][field] = self.inrow[field]
 
     # ----------------------
@@ -208,7 +247,9 @@ class OutputHandler:
     def writelabelgraph(self):
         # TODO: Option to automatically apply network layout
         if not settings.downloadMode:
+            print("\n\nWriting image-label graph.")
             nx.write_gexf(self.labelgraph, self.labelgexffp)
+            
 
     # ----------------------
     # Get date time
