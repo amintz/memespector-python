@@ -52,7 +52,7 @@ def main():
                         printfuncs.annotationexistederror()
                     else:
                         printfuncs.annotationexisted()
-                if retry or not output.annotationexists():
+                if not output.annotationexists():
                     try:
                         goodparse = apirequest.annotateImage(curimg)
                     except Warning:
