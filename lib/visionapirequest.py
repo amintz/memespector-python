@@ -243,7 +243,7 @@ class VisionApiRequest:
                 base64Data = base64.b64encode(image.read())
             else:
                 image = net.getimage(path)
-                base64Data = base64.b64b64encode(image)
+                base64Data = base64.b64encode(image)
             jsonRequest = '''{
                 "requests":[
                     {
