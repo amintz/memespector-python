@@ -27,7 +27,6 @@ def main():
         # ----------------
 
         # Keep track of labels found
-        foundlabels = []
         error_count = 0
 
         for i in range(settings.procLimit):
@@ -48,7 +47,6 @@ def main():
                         goodparse = apirequest.loadResponse(output.annotationpath())
                     except Warning:
                         goodparse = False
-                        retry = True
                         printfuncs.annotationexistederror()
                     else:
                         printfuncs.annotationexisted()

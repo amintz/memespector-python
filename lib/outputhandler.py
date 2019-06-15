@@ -37,7 +37,7 @@ class OutputHandler:
             # os.makedirs(settings.logsFolder)
 
         # Establish files basenames depending on inputType
-        if settings.inputType == const.FOLDER:
+        if self.inputhandle.getInputType() == const.FOLDER:
             if settings.input.endswith('/') or settings.input.endswith('\\'):
                 self.basename = os.path.basename(settings.input[:-1])
             else:
@@ -110,7 +110,7 @@ class OutputHandler:
     def resetrow(self):
         self.outrow = {}
         self.foundlabels = []
-        if settings.inputType == const.CSV:
+        if self.inputhandle.getInputType() == const.CSV:
             self.inrow = self.inputhandle.getCurRow()
         else:
             self.inrow = {}

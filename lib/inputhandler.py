@@ -50,7 +50,6 @@ class InputHandler:
                     try:
                         self.csv = csv.DictReader(self.file, delimiter=settings.delimiter)
                     except csv.Error:
-                        print(const.csv_reader_error)
                         raise Exception("Could not read csv file. Please check file and configurations.")
                     except Exception:
                         raise
@@ -176,7 +175,6 @@ class InputHandler:
         self.iterindex=0
         self.file.seek(0)
         next(self.csv)
-        curImg = self.filelist[self.iterindex]
         if self.inputtype == const.CSV:
             self.curRow = next(self.csv)
 

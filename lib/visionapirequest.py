@@ -107,7 +107,7 @@ class VisionApiRequest:
         if 'responses' in self.response:
             responseNode = self.response['responses'][0]        
         elif 'error' in self.response:
-            message = self.response['error']['message']
+            # message = self.response['error']['message']
             code = self.response['error']['code']
             if code==400:
                 raise Warning("\n**ERROR**\nAPI returned a 'Bad Request' error. Might be a problem with you API key or with the image file or url - check it is accesssible and not corrupted.")
@@ -134,7 +134,7 @@ class VisionApiRequest:
                     if 'score' in label:
                         labelDict = {}
                         if label['score'] < settings.labelThreshold:
-                            continue;
+                            continue
                         if label['mid']=='':
                             labelid = "_" + label['description']
                         else:
@@ -202,7 +202,7 @@ class VisionApiRequest:
         # Face
         if settings.faceDetection:
             if 'faceAnnotations' in responseNode:
-                self.parsedresponse['gv_num_faces'] = 0;
+                self.parsedresponse['gv_num_faces'] = 0
                 self.parsedresponse['gv_face_joy'] = 'VERY_UNLIKELY'
                 self.parsedresponse['gv_face_sorrow'] = 'VERY_UNLIKELY'
                 self.parsedresponse['gv_face_anger'] = 'VERY_UNLIKELY'
